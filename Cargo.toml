@@ -1,0 +1,28 @@
+[package]
+name = "greetd-stub"
+version = "0.2.0"
+
+license-file = "LICENSE"
+description = "Greetd server stub for development and testing"
+homepage = "https://github.com/apognu/greetd-stub"
+repository = "https://github.com/apognu/greetd-stub"
+readme = "README.md"
+
+edition = "2021"
+
+[lib]
+name = "libgreetd_stub"
+path = "src/lib.rs"
+
+[[bin]]
+name = "greetd-stub"
+path = "src/main.rs"
+
+[features]
+fingerprint = ["libfprint-rs"]
+
+[dependencies]
+getopts = "0.2.21"
+greetd_ipc = { version = "0.10.0", features = ["tokio-codec"] }
+libfprint-rs = { version = "0.2.1", optional = true }
+tokio = { version = "1.37.0", features = ["macros", "net", "rt"] }

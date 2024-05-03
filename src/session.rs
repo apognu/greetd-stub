@@ -1,9 +1,10 @@
+#![allow(dead_code)]
 use greetd_ipc::{AuthMessageType, ErrorType, Response};
 
 #[derive(Default)]
-pub struct SessionOptions<'a> {
-  pub username: &'a str,
-  pub password: &'a str,
+pub struct SessionOptions {
+  pub username: String,
+  pub password: String,
   pub mfa: bool,
   #[cfg(feature = "fingerprint")]
   pub fingerprint: bool,
@@ -39,7 +40,7 @@ impl Default for Context {
 }
 
 impl Context {
-  pub fn next(&mut self, opts: &SessionOptions<'_>) -> Response {
+  pub fn next(&mut self, opts: &SessionOptions) -> Response {
     if let Some(error) = self.check() {
       return error;
     }

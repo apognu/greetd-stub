@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use greetd_ipc::{codec::TokioCodec, ErrorType, Request, Response};
 use tokio::net::UnixStream;
 
@@ -6,7 +8,7 @@ use libfprint_rs::{FpContext, FpPrint};
 
 use crate::session::{Context, SessionOptions, State};
 
-pub async fn handle(mut stream: UnixStream, opts: &SessionOptions<'_>) {
+pub async fn handle(mut stream: UnixStream, opts: &SessionOptions) {
   let mut context = Context::default();
 
   loop {
@@ -15,6 +17,8 @@ pub async fn handle(mut stream: UnixStream, opts: &SessionOptions<'_>) {
       Err(greetd_ipc::codec::Error::Eof) => return,
       Err(_) => return,
     };
+
+    tracing::debug!("received request {request:?}");
 
     let response = match request {
       Request::CreateSession { username } => {
@@ -52,7 +56,7 @@ pub async fn handle(mut stream: UnixStream, opts: &SessionOptions<'_>) {
       }
 
       Request::StartSession { cmd, .. } => {
-        println!("Session successfully started ({:?}).", cmd);
+        tracing::info!("session successfully started: {cmd:?}");
 
         Response::Success
       }
@@ -66,6 +70,8 @@ pub async fn handle(mut stream: UnixStream, opts: &SessionOptions<'_>) {
         description: "Communication error".to_string(),
       },
     };
+
+    tracing::debug!("sending response {response:?}");
 
     let _ = response.write_to(&mut stream).await;
   }

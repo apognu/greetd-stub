@@ -4,8 +4,11 @@ mod session;
 
 use std::{env, error::Error, fs, process};
 
-use session::SessionOptions;
-use tokio::net::UnixListener;
+use tracing::level_filters::LevelFilter;
+use tracing_appender::non_blocking::WorkerGuard;
+use tracing_subscriber::prelude::*;
+
+use libgreetd_stub::SessionOptions;
 
 const DEFAULT_SOCKET: &str = "/tmp/greetd.sock";
 const DEFAULT_USERNAME: &str = "user";
@@ -15,6 +18,7 @@ const DEFAULT_PASSWORD: &str = "password";
 async fn main() -> Result<(), Box<dyn Error>> {
   let mut args = getopts::Options::new();
   args.optflag("h", "help", "show this usage information");
+  args.optflag("d", "debug", "enable debug logging");
   args.optopt("s", "socket", "path to the UNIX socket to create", "PATH");
   args.optopt("u", "user", "username and password to accept", "USERNAME:PASSWORD");
   args.optflag("m", "mfa", "enable second-factor authentication");
@@ -36,6 +40,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     process::exit(0);
   }
 
+  let _guard = init_logger(opts.opt_present("debug"));
+
   let socket = match opts.opt_str("socket") {
     Some(socket) => socket,
     None => DEFAULT_SOCKET.to_string(),
@@ -55,23 +61,35 @@ async fn main() -> Result<(), Box<dyn Error>> {
   };
 
   let session_opts = SessionOptions {
-    username: &username,
-    password: &password,
+    username,
+    password,
     mfa: opts.opt_present("mfa"),
     #[cfg(feature = "fingerprint")]
     fingerprint: opts.opt_present("fingerprint"),
   };
 
   let _ = fs::remove_file(&socket);
-  let listener = UnixListener::bind(&socket).unwrap();
 
-  loop {
-    if let Ok((stream, _)) = listener.accept().await {
-      server::handle(stream, &session_opts).await;
-    }
-  }
+  libgreetd_stub::start(socket, &session_opts).await;
+
+  Ok(())
 }
 
 fn usage(opts: getopts::Options) {
   eprint!("{}", opts.usage("Usage: dummygreeter [OPTIONS]"));
+}
+
+fn init_logger(debug: bool) -> WorkerGuard {
+  let (appender, guard) = tracing_appender::non_blocking(std::io::stdout());
+  let level = match debug {
+    true => LevelFilter::DEBUG,
+    false => LevelFilter::INFO,
+  };
+
+  tracing_subscriber::registry()
+    .with(tracing_subscriber::fmt::layer().with_writer(appender).with_line_number(true))
+    .with(level)
+    .init();
+
+  guard
 }

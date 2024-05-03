@@ -8,12 +8,14 @@ use tokio::net::UnixListener;
 
 pub use crate::session::SessionOptions;
 
-pub async fn start<P>(socket: P, opts: &SessionOptions<'static>)
+pub async fn start<P>(socket: P, opts: &SessionOptions)
 where
   P: AsRef<Path>,
 {
   let _ = fs::remove_file(&socket);
   let listener = UnixListener::bind(socket).unwrap();
+
+  tracing::info!("starting greetd stub");
 
   loop {
     if let Ok((stream, _)) = listener.accept().await {

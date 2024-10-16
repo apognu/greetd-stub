@@ -55,8 +55,9 @@ pub async fn handle(mut stream: UnixStream, opts: &SessionOptions) {
         context.next(opts)
       }
 
-      Request::StartSession { cmd, .. } => {
+      Request::StartSession { cmd, env } => {
         tracing::info!("session successfully started: {cmd:?}");
+        tracing::info!("session environment: {:?}", env);
 
         Response::Success
       }
